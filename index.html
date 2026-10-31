@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-slate-900 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DriveDrop - Google Drive Mobile Uploader</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        drive: { blue: '#1a73e8', green: '#0f9d58', yellow: '#f4b400', red: '#db4437' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .glass-card { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.05); }
+    </style>
+</head>
+<body class="h-full flex flex-col justify-between overflow-x-hidden antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800 px-4 py-3 sm:px-6">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 p-[2px] shadow-lg shadow-blue-500/20">
+                    <div class="w-full h-full bg-slate-900 rounded-[10px] flex items-center justify-center">
+                        <i class="fa-brands fa-google-drive text-xl text-blue-400"></i>
+                    </div>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+                        DriveDrop <span class="text-[10px] font-semibold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded-md">Mobile</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Upload direct to Google Drive</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button id="btnOpenSettings" class="p-2.5 text-slate-400 hover:text-white hover:bg-slate-800/80 rounded-xl transition-all relative" title="Drive Settings">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                    <span id="configIndicator" class="absolute top-2 right-2 w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 sm:p-6 space-y-5 pb-24">
+
+        <!-- Connection Banner -->
+        <div id="connectionBanner" class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center justify-between shadow-sm">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-flask text-amber-400 text-sm"></i>
+                <span>สถานะ: <strong>โหมดทดสอบ (ยังไม่ได้ใส่ URL)</strong></span>
+            </div>
+            <button id="btnQuickConfig" class="text-amber-400 underline font-semibold text-xs hover:text-amber-200">ตั้งค่า URL</button>
+        </div>
+
+        <!-- Section Navigation Tabs -->
+        <div class="flex p-1 bg-slate-950/60 rounded-xl border border-slate-800/80">
+            <button id="tabUploadBtn" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-blue-600 text-white shadow-md transition-all">
+                <i class="fa-solid fa-cloud-arrow-up mr-1.5"></i>Upload
+            </button>
+            <button id="tabHistoryBtn" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 transition-all">
+                <i class="fa-solid fa-clock-rotate-left mr-1.5"></i>History
+            </button>
+        </div>
+
+        <!-- UPLOAD SECTION -->
+        <div id="sectionUpload" class="space-y-4">
+            
+            <!-- Dropzone -->
+            <div id="dropzone" class="glass-panel relative rounded-2xl border-2 border-dashed border-slate-700 hover:border-blue-500/70 p-6 text-center transition-all cursor-pointer group hover:bg-slate-800/40">
+                <input type="file" id="fileInput" multiple class="hidden" accept="image/*,video/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.csv,.xlsx">
+                
+                <div class="w-16 h-16 mx-auto mb-3 rounded-2xl bg-slate-800/80 flex items-center justify-center border border-slate-700/50 group-hover:scale-105 group-hover:bg-blue-600/10 group-hover:border-blue-500/30 transition-all shadow-inner">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-400 group-hover:text-blue-300"></i>
+                </div>
+                
+                <h3 class="text-sm font-semibold text-white">แตะเพื่อเลือกรูปหรือไฟล์ (Tap to select files)</h3>
+                <p class="text-xs text-slate-400 mt-1">รองรับรูปภาพ, วิดีโอ, เอกสาร PDF</p>
+
+                <div class="mt-4 pt-4 border-t border-slate-800/80 flex justify-center gap-2">
+                    <button type="button" id="btnCaptureCamera" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-medium text-slate-200 flex items-center gap-2 border border-slate-700">
+                        <i class="fa-solid fa-camera text-blue-400"></i> ถ่ายภาพ (Camera)
+                    </button>
+                    <button type="button" id="btnBrowseFiles" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-medium text-slate-200 flex items-center gap-2 border border-slate-700">
+                        <i class="fa-solid fa-folder-open text-amber-400"></i> เลือกไฟล์ (Browse)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Target Folder Selector -->
+            <div class="glass-card p-3 rounded-xl flex flex-col space-y-2 text-xs border border-slate-800">
+                <div class="flex items-center justify-between text-slate-300">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-folder-tree text-amber-400 text-sm"></i>
+                        <span>เลือกโฟลเดอร์ปลายทางปัจจุบัน:</span>
+                    </div>
+                    <button id="btnRefreshFolders" class="text-blue-400 hover:underline text-[11px]"><i class="fa-solid fa-rotate"></i> โหลดโฟลเดอร์สด</button>
+                </div>
+                <select id="targetFolderSelect" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500">
+                    <option value="">-- โฟลเดอร์หลัก (Root / Mobile Uploads) --</option>
+                </select>
+            </div>
+
+            <!-- Selected Files Container -->
+            <div id="filePreviewContainer" class="space-y-2 hidden">
+                <div class="flex items-center justify-between px-1">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">รายการไฟล์ที่เลือก (<span id="fileCount">0</span>)</span>
+                    <button id="btnClearFiles" class="text-xs text-rose-400 hover:text-rose-300 transition-colors">ยกเลิกทั้งหมด</button>
+                </div>
+
+                <div id="fileList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+
+                <button id="btnUploadSubmit" class="w-full mt-3 py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white rounded-xl font-bold shadow-lg shadow-emerald-600/25 active:scale-[0.99] transition-all flex items-center justify-center space-x-2 text-base">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>ตกลง / อัปโหลดเข้า Google Drive</span>
+                </button>
+            </div>
+
+            <!-- Progress Card -->
+            <div id="uploadProgressCard" class="glass-panel p-5 rounded-2xl space-y-4 border border-blue-500/30 hidden">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                            <i class="fa-solid fa-spinner animate-spin text-lg" id="uploadSpinner"></i>
+                            <i class="fa-solid fa-circle-check text-lg text-emerald-400 hidden" id="uploadSuccessCheck"></i>
+                        </div>
+                        <div>
+                            <h4 id="uploadStatusTitle" class="text-sm font-semibold text-white">กำลังอัปโหลดไปยัง Google Drive...</h4>
+                            <p id="uploadStatusSubtitle" class="text-xs text-slate-400">กำลังประมวลผลไฟล์</p>
+                        </div>
+                    </div>
+                    <span id="uploadPercentage" class="text-sm font-bold text-blue-400">0%</span>
+                </div>
+
+                <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                </div>
+
+                <div id="uploadLog" class="text-[11px] font-mono text-slate-400 bg-slate-950/70 p-2.5 rounded-lg max-h-24 overflow-y-auto space-y-1">
+                    <div>[ระบบ] เริ่มต้นกระบวนการส่งไฟล์...</div>
+                </div>
+
+                <div id="uploadedLinksContainer" class="hidden pt-2 border-t border-slate-800">
+                    <p class="text-xs font-semibold text-slate-300 mb-2">ลิงก์เปิดดูไฟล์ใน Google Drive:</p>
+                    <div id="uploadedLinksList" class="space-y-1 text-xs"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- HISTORY TAB SECTION -->
+        <div id="sectionHistory" class="space-y-4 hidden">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ประวัติการอัปโหลด</span>
+                <button id="btnClearHistory" class="text-xs text-slate-500 hover:text-slate-300">Clear</button>
+            </div>
+            <div id="historyList" class="space-y-2"></div>
+        </div>
+
+    </main>
+
+    <!-- Footer Toolbar -->
+    <footer class="fixed bottom-0 left-0 right-0 z-30 glass-panel border-t border-slate-800 px-4 py-2.5">
+        <div class="max-w-md mx-auto flex items-center justify-around text-center">
+            <button id="footerNavUpload" class="flex flex-col items-center text-blue-400">
+                <i class="fa-solid fa-cloud-arrow-up text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">Upload</span>
+            </button>
+            <button id="footerNavSettings" class="flex flex-col items-center text-slate-400 hover:text-slate-200">
+                <i class="fa-solid fa-sliders text-lg"></i>
+                <span class="text-[10px] font-medium mt-0.5">Config</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 hidden transition-opacity duration-300 opacity-0">
+        <div class="glass-panel w-full max-w-md rounded-t-3xl sm:rounded-2xl border-t sm:border border-slate-800 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-gears text-blue-400"></i>
+                    <h3 class="font-bold text-slate-100 text-base">การตั้งค่า Google Drive API</h3>
+                </div>
+                <button id="btnCloseSettings" class="p-1 text-slate-400 hover:text-white rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-300 mb-1.5">โหมดการทำงาน</label>
+                    <select id="configMode" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-blue-500">
+                        <option value="demo">Demo Mode (ทดสอบระบบ)</option>
+                        <option value="gas">Google Apps Script WebApp (ใช้งานจริง)</option>
+                    </select>
+                </div>
+
+                <div id="gasConfigContainer" class="space-y-1.5">
+                    <label class="block font-semibold text-slate-300">Apps Script Web App URL</label>
+                    <input type="url" id="gasScriptUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-blue-500 font-mono text-[11px]">
+                </div>
+
+                <button type="button" id="btnTestConnection" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-medium border border-slate-700 transition-colors flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-plug text-xs"></i>
+                    <span>ทดสอบการเชื่อมต่อ Endpoint</span>
+                </button>
+
+                <div id="configStatusMessage" class="hidden p-3 rounded-xl text-xs"></div>
+            </div>
+
+            <div class="pt-2 flex gap-3">
+                <button id="btnSaveConfig" class="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-lg shadow-blue-600/20 transition-all">บันทึกการตั้งค่า</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-xs w-full pointer-events-none"></div>
+
+    <script>
+        const appState = {
+            files: [],
+            mode: localStorage.getItem('drive_upload_mode') || 'demo',
+            gasUrl: localStorage.getItem('drive_gas_url') || '',
+            history: JSON.parse(localStorage.getItem('drive_upload_history') || '[]')
+        };
+
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const btnBrowseFiles = document.getElementById('btnBrowseFiles');
+        const btnCaptureCamera = document.getElementById('btnCaptureCamera');
+        const filePreviewContainer = document.getElementById('filePreviewContainer');
+        const fileList = document.getElementById('fileList');
+        const fileCount = document.getElementById('fileCount');
+        const btnClearFiles = document.getElementById('btnClearFiles');
+        const btnUploadSubmit = document.getElementById('btnUploadSubmit');
+        const uploadProgressCard = document.getElementById('uploadProgressCard');
+        const progressBar = document.getElementById('progressBar');
+        const uploadPercentage = document.getElementById('uploadPercentage');
+        const uploadStatusTitle = document.getElementById('uploadStatusTitle');
+        const uploadStatusSubtitle = document.getElementById('uploadStatusSubtitle');
+        const uploadLog = document.getElementById('uploadLog');
+
+        const targetFolderSelect = document.getElementById('targetFolderSelect');
+        const btnRefreshFolders = document.getElementById('btnRefreshFolders');
+
+        const tabUploadBtn = document.getElementById('tabUploadBtn');
+        const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+        const sectionUpload = document.getElementById('sectionUpload');
+        const sectionHistory = document.getElementById('sectionHistory');
+        const historyList = document.getElementById('historyList');
+
+        const footerNavUpload = document.getElementById('footerNavUpload');
+        const footerNavSettings = document.getElementById('footerNavSettings');
+        
+        const settingsModal = document.getElementById('settingsModal');
+        const btnOpenSettings = document.getElementById('btnOpenSettings');
+        const btnQuickConfig = document.getElementById('btnQuickConfig');
+        const btnCloseSettings = document.getElementById('btnCloseSettings');
+        const btnSaveConfig = document.getElementById('btnSaveConfig');
+        const configMode = document.getElementById('configMode');
+        const gasScriptUrl = document.getElementById('gasScriptUrl');
+        const connectionBanner = document.getElementById('connectionBanner');
+        const configIndicator = document.getElementById('configIndicator');
+        const btnTestConnection = document.getElementById('btnTestConnection');
+        const configStatusMessage = document.getElementById('configStatusMessage');
+        const btnClearHistory = document.getElementById('btnClearHistory');
+        const uploadedLinksContainer = document.getElementById('uploadedLinksContainer');
+        const uploadedLinksList = document.getElementById('uploadedLinksList');
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initSettingsUI();
+            if (appState.mode === 'gas' && appState.gasUrl) {
+                fetchDriveFolders();
+            }
+
+            dropzone.addEventListener('click', () => fileInput.click());
+            btnBrowseFiles.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+            btnCaptureCamera.addEventListener('click', (e) => { 
+                e.stopPropagation(); 
+                fileInput.setAttribute('capture', 'environment');
+                fileInput.click(); 
+            });
+
+            fileInput.addEventListener('change', handleFileSelection);
+            btnUploadSubmit.addEventListener('click', startUploadProcess);
+            btnRefreshFolders.addEventListener('click', fetchDriveFolders);
+
+            btnClearFiles.addEventListener('click', () => {
+                appState.files = [];
+                renderFilePreviews();
+            });
+
+            tabUploadBtn.addEventListener('click', () => switchTab('upload'));
+            tabHistoryBtn.addEventListener('click', () => switchTab('history'));
+            footerNavUpload.addEventListener('click', () => switchTab('upload'));
+            footerNavSettings.addEventListener('click', openSettingsModal);
+
+            btnOpenSettings.addEventListener('click', openSettingsModal);
+            if (btnQuickConfig) btnQuickConfig.addEventListener('click', openSettingsModal);
+            btnCloseSettings.addEventListener('click', closeSettingsModal);
+            btnSaveConfig.addEventListener('click', saveConfiguration);
+            btnTestConnection.addEventListener('click', testGasConnection);
+            if (btnClearHistory) btnClearHistory.addEventListener('click', clearHistory);
+        });
+
+        async function fetchDriveFolders() {
+            if (!appState.gasUrl) return;
+            btnRefreshFolders.innerHTML = `<i class="fa-solid fa-rotate animate-spin"></i> กำลังโหลด...`;
+            try {
+                const response = await fetch(`${appState.gasUrl}?action=getFolders`, { method: 'GET', mode: 'cors' });
+                const data = await response.json();
+                if (data.status === 'success' && data.folders) {
+                    targetFolderSelect.innerHTML = `<option value="">-- โฟลเดอร์หลัก (Root / Mobile Uploads) --</option>`;
+                    data.folders.forEach(folder => {
+                        const opt = document.createElement('option');
+                        opt.value = folder.id;
+                        opt.textContent = `📁 ${folder.name}`;
+                        targetFolderSelect.appendChild(opt);
+                    });
+                    showToast('โหลดรายชื่อโฟลเดอร์ปัจจุบันสำเร็จ', 'success');
+                }
+            } catch (err) {
+                console.error(err);
+                showToast('ไม่สามารถดึงรายชื่อโฟลเดอร์ได้', 'error');
+            } finally {
+                btnRefreshFolders.innerHTML = `<i class="fa-solid fa-rotate"></i> โหลดโฟลเดอร์สด`;
+            }
+        }
+
+        function handleFileSelection(e) {
+            if (e.target.files && e.target.files.length > 0) {
+                addFiles(Array.from(e.target.files));
+                fileInput.value = ''; 
+            }
+        }
+
+        function addFiles(newFiles) {
+            newFiles.forEach(file => {
+                if (!appState.files.some(f => f.name === file.name && f.size === file.size)) {
+                    appState.files.push(file);
+                }
+            });
+            renderFilePreviews();
+            showToast(`เลือกไฟล์แล้ว ${newFiles.length} ไฟล์`, 'info');
+        }
+
+        function removeFile(index) {
+            appState.files.splice(index, 1);
+            renderFilePreviews();
+        }
+
+        function renderFilePreviews() {
+            fileList.innerHTML = '';
+            if (appState.files.length === 0) {
+                filePreviewContainer.classList.add('hidden');
+                return;
+            }
+            filePreviewContainer.classList.remove('hidden');
+            fileCount.innerText = appState.files.length;
+
+            appState.files.forEach((file, idx) => {
+                const fileCard = document.createElement('div');
+                fileCard.className = 'glass-card p-2.5 rounded-xl flex items-center justify-between border border-slate-800 text-xs';
+                fileCard.innerHTML = `
+                    <div class="flex items-center space-x-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-blue-400 shrink-0">
+                            <i class="fa-solid fa-file text-sm"></i>
+                        </div>
+                        <div class="truncate">
+                            <p class="font-medium text-slate-200 truncate">${escapeHtml(file.name)}</p>
+                            <p class="text-[10px] text-slate-400">${Math.round(file.size / 1024)} KB</p>
+                        </div>
+                    </div>
+                    <button class="btn-remove p-1.5 text-slate-500 hover:text-rose-400 transition-colors" data-index="${idx}">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                `;
+                fileList.appendChild(fileCard);
+            });
+
+            document.querySelectorAll('.btn-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    removeFile(parseInt(e.currentTarget.getAttribute('data-index')));
+                });
+            });
+        }
+
+        async function startUploadProcess() {
+            if (appState.files.length === 0) return;
+            const selectedFolderId = targetFolderSelect.value;
+            const selectedFolderName = targetFolderSelect.options[targetFolderSelect.selectedIndex].text.replace('📁 ', '');
+
+            uploadProgressCard.classList.remove('hidden');
+            uploadedLinksContainer.classList.add('hidden');
+            uploadedLinksList.innerHTML = '';
+            btnUploadSubmit.disabled = true;
+
+            const totalFiles = appState.files.length;
+            let uploadedCount = 0;
+
+            for (let i = 0; i < totalFiles; i++) {
+                const file = appState.files[i];
+                try {
+                    let fileUrl = '#';
+                    if (appState.mode === 'gas' && appState.gasUrl) {
+                        const result = await uploadFileToGAS(file, selectedFolderId);
+                        fileUrl = result.fileUrl || '#';
+                    } else {
+                        fileUrl = 'https://drive.google.com';
+                    }
+                    uploadedCount++;
+                    appendUploadedLink(file.name, fileUrl);
+                } catch (err) {
+                    showToast(`อัปโหลดไม่สำเร็จ: ${file.name}`, 'error');
+                }
+            }
+
+            uploadStatusTitle.innerText = "อัปโหลดสำเร็จ!";
+            uploadedLinksContainer.classList.remove('hidden');
+            showToast('อัปโหลดเข้า Drive สำเร็จ!', 'success');
+            setTimeout(() => {
+                appState.files = [];
+                renderFilePreviews();
+                btnUploadSubmit.disabled = false;
+            }, 2000);
+        }
+
+        function appendUploadedLink(fileName, url) {
+            const linkItem = document.createElement('a');
+            linkItem.href = url;
+            linkItem.target = '_blank';
+            linkItem.className = 'flex items-center space-x-2 text-blue-400 hover:text-blue-300 underline font-medium truncate';
+            linkItem.innerHTML = `<i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> <span class="truncate">${escapeHtml(fileName)}</span>`;
+            uploadedLinksList.appendChild(linkItem);
+        }
+
+        function uploadFileToGAS(file, folderId) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    fetch(appState.gasUrl, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify({ fileName: file.name, mimeType: file.type || 'application/octet-stream', fileData: e.target.result, folderId: folderId })
+                    })
+                    .then(res => res.json())
+                    .then(data => data.status === 'success' ? resolve(data) : reject(new Error(data.message)))
+                    .catch(err => reject(err));
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function switchTab(tabName) {
+            [sectionUpload, sectionHistory].forEach(el => el.classList.add('hidden'));
+            if (tabName === 'upload') sectionUpload.classList.remove('hidden');
+            if (tabName === 'history') { sectionHistory.classList.remove('hidden'); renderHistory(); }
+        }
+
+        function openSettingsModal() { settingsModal.classList.remove('hidden'); setTimeout(() => settingsModal.classList.remove('opacity-0'), 10); }
+        function closeSettingsModal() { settingsModal.classList.add('opacity-0'); setTimeout(() => settingsModal.classList.add('hidden'), 300); }
+        function initSettingsUI() { configMode.value = appState.mode; gasScriptUrl.value = appState.gasUrl; updateBannerUI(); }
+
+        function saveConfiguration() {
+            appState.mode = configMode.value;
+            appState.gasUrl = gasScriptUrl.value.trim();
+            localStorage.setItem('drive_upload_mode', appState.mode);
+            localStorage.setItem('drive_gas_url', appState.gasUrl);
+            updateBannerUI();
+            showToast('บันทึกสำเร็จ', 'success');
+            closeSettingsModal();
+            if (appState.mode === 'gas' && appState.gasUrl) fetchDriveFolders();
+        }
+
+        function updateBannerUI() {
+            if (appState.mode === 'gas' && appState.gasUrl) {
+                connectionBanner.className = "p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center justify-between shadow-sm";
+                connectionBanner.innerHTML = `<span>สถานะ: <strong>เชื่อมต่อแล้ว</strong></span><button id="btnQuickConfig2" class="underline">ตั้งค่า</button>`;
+                document.getElementById('btnQuickConfig2').addEventListener('click', openSettingsModal);
+            }
+        }
+
+        async function testGasConnection() {
+            try {
+                await fetch(gasScriptUrl.value.trim(), { method: 'GET', mode: 'cors' });
+                showConfigStatus('เชื่อมต่อสำเร็จ!', 'success');
+                fetchDriveFolders();
+            } catch (err) {
+                showConfigStatus('เชื่อมต่อไม่สำเร็จ', 'error');
+            }
+        }
+
+        function showConfigStatus(msg, type) {
+            configStatusMessage.classList.remove('hidden', 'bg-rose-500/20', 'text-rose-300', 'bg-emerald-500/20', 'text-emerald-300');
+            configStatusMessage.classList.add(type === 'error' ? 'bg-rose-500/20' : 'bg-emerald-500/20', type === 'error' ? 'text-rose-300' : 'text-emerald-300');
+            configStatusMessage.innerText = msg;
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = appState.history.length === 0 ? '<div class="text-center py-8 text-slate-500 text-xs">ยังไม่มีประวัติ</div>' : '';
+        }
+
+        function clearHistory() { appState.history = []; localStorage.removeItem('drive_upload_history'); renderHistory(); }
+        function escapeHtml(str) { return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+        function showToast(msg) {
+            const t = document.createElement('div');
+            t.className = 'p-3 rounded-xl border bg-slate-900 border-emerald-500/40 text-emerald-200 text-xs shadow-xl';
+            t.innerText = msg;
+            document.getElementById('toastContainer').appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
